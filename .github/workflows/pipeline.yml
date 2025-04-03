@@ -1,0 +1,76 @@
+name: Build and Deploy Lambda and Terraform
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: # Define a configuração de ambiente
+      name: AWS
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Configuração do .NET Core
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'
+
+      - name: Install Amazon Lambda Tools
+        run: |
+          dotnet tool install -g Amazon.Lambda.Tools
+          echo "Adding ~/.dotnet/tools to PATH"
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        working-directory: Lambda-Authenticator/Lambda-Authenticator
+        run: dotnet restore
+
+      # Configura credenciais AWS
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      # Build e Deploy da Lambda
+      - name: Build and package Lambda
+        working-directory: Lambda-Authenticator/Lambda-Authenticator
+        run: dotnet lambda package -c Release -o Lambda-Authenticator.zip    
+
+      - name: Deploy Lambda to AWS
+        working-directory: Lambda-Authenticator/Lambda-Authenticator
+        run: |
+          aws lambda update-function-code \
+            --region us-east-1 \
+            --function-name CustomAuthorizerLambda \
+            --zip-file fileb://Lambda-Authenticator.zip
+
+      # Terraform: Instalação e execução
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.8.0'
+
+      - name: Terraform Init
+        working-directory: api-gateway
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: api-gateway
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: api-gateway
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: api-gateway
+        run: terraform apply -auto-approve tfplan
