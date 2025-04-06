@@ -26,12 +26,14 @@ resource "aws_api_gateway_authorizer" "custom_authorizer" {
   type                              = "REQUEST"
 }
 
+# /videos
 resource "aws_api_gateway_resource" "videos" {
   rest_api_id = aws_api_gateway_rest_api.framesnap_api.id
   parent_id   = aws_api_gateway_rest_api.framesnap_api.root_resource_id
   path_part   = "videos"
 }
 
+# /videos/{proxy+}
 resource "aws_api_gateway_resource" "videos_proxy" {
   rest_api_id = aws_api_gateway_rest_api.framesnap_api.id
   parent_id   = aws_api_gateway_resource.videos.id
@@ -65,25 +67,57 @@ resource "aws_api_gateway_integration" "videos_proxy_integration" {
   passthrough_behavior = "WHEN_NO_MATCH"
 }
 
-resource "aws_api_gateway_resource" "login" {
+# /auth
+resource "aws_api_gateway_resource" "auth" {
   rest_api_id = aws_api_gateway_rest_api.framesnap_api.id
   parent_id   = aws_api_gateway_rest_api.framesnap_api.root_resource_id
+  path_part   = "auth"
+}
+
+# /auth/login
+resource "aws_api_gateway_resource" "auth_login" {
+  rest_api_id = aws_api_gateway_rest_api.framesnap_api.id
+  parent_id   = aws_api_gateway_resource.auth.id
   path_part   = "login"
 }
 
-resource "aws_api_gateway_method" "login_method" {
+resource "aws_api_gateway_method" "auth_login_method" {
   rest_api_id   = aws_api_gateway_rest_api.framesnap_api.id
-  resource_id   = aws_api_gateway_resource.login.id
+  resource_id   = aws_api_gateway_resource.auth_login.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "login_integration" {
+resource "aws_api_gateway_integration" "auth_login_integration" {
   rest_api_id             = aws_api_gateway_rest_api.framesnap_api.id
-  resource_id             = aws_api_gateway_resource.login.id
-  http_method             = aws_api_gateway_method.login_method.http_method
+  resource_id             = aws_api_gateway_resource.auth_login.id
+  http_method             = aws_api_gateway_method.auth_login_method.http_method
   integration_http_method = "POST"
   uri                     = "${var.login_service_endpoint}/login"
+  type                    = "HTTP_PROXY"
+  passthrough_behavior    = "WHEN_NO_MATCH"
+}
+
+# /auth/register
+resource "aws_api_gateway_resource" "auth_register" {
+  rest_api_id = aws_api_gateway_rest_api.framesnap_api.id
+  parent_id   = aws_api_gateway_resource.auth.id
+  path_part   = "register"
+}
+
+resource "aws_api_gateway_method" "auth_register_method" {
+  rest_api_id   = aws_api_gateway_rest_api.framesnap_api.id
+  resource_id   = aws_api_gateway_resource.auth_register.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "auth_register_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.framesnap_api.id
+  resource_id             = aws_api_gateway_resource.auth_register.id
+  http_method             = aws_api_gateway_method.auth_register_method.http_method
+  integration_http_method = "POST"
+  uri                     = "${var.login_service_endpoint}/register"
   type                    = "HTTP_PROXY"
   passthrough_behavior    = "WHEN_NO_MATCH"
 }
@@ -92,7 +126,8 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.framesnap_api.id
   depends_on = [
     aws_api_gateway_method.videos_proxy_method,
-    aws_api_gateway_method.login_method
+    aws_api_gateway_method.auth_login_method,
+    aws_api_gateway_method.auth_register_method
   ]
 }
 

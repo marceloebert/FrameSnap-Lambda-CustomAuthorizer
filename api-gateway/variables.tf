@@ -10,7 +10,7 @@ variable "eks_service_endpoint" {
 
 variable "login_service_endpoint" {
   description = "EKS login service endpoint (rota /login)"
-  default     = "http://aaac2fcb5f97e483786be9c190d47c41-1267190571.us-east-1.elb.amazonaws.com/login"
+  default     = "http://aaac2fcb5f97e483786be9c190d47c41-1267190571.us-east-1.elb.amazonaws.com/auth"
 }
 
 variable "lambda_function_name" {

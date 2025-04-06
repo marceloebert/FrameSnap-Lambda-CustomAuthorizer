@@ -5,23 +5,17 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
 using System.Collections.Generic;
+using System.Linq;
 
-// Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace Lambda_Authenticator;
 
 public class Function
 {
-    private const string CognitoJwksUrl = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_8jQ8KtU4v/.well-known/jwks.json";
+    private const string CognitoJwksUrl = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_yc6M649rp/.well-known/jwks.json";
     private static readonly HttpClient HttpClient = new HttpClient();
 
-    /// <summary>
-    /// Main Lambda Handler for processing requests.
-    /// </summary>
-    /// <param name="request">The event for the Lambda function handler to process.</param>
-    /// <param name="context">The ILambdaContext that provides methods for logging and describing the Lambda environment.</param>
-    /// <returns>A policy document in the required format for API Gateway.</returns>
     public async Task<object> FunctionHandler(Dictionary<string, object> request, ILambdaContext context)
     {
         context.Logger.LogLine($"Received request: {JsonSerializer.Serialize(request)}");
@@ -32,7 +26,6 @@ public class Function
             throw new UnauthorizedAccessException("Unauthorized. Token is required.");
         }
 
-        // Extract Authorization header
         string authorizationHeader = null;
         if (headersElement.TryGetProperty("Authorization", out var authElement))
         {
@@ -48,7 +41,6 @@ public class Function
         string token = authorizationHeader.Replace("Bearer ", "");
         context.Logger.LogLine($"Authorization token: {token}");
 
-        // Validate the JWT Token
         bool isValid = await ValidateJwtToken(token, context);
         if (!isValid)
         {
@@ -62,12 +54,6 @@ public class Function
         return GeneratePolicy("user", "Allow", methodArn);
     }
 
-    /// <summary>
-    /// Validates the JWT Token using Cognito's JWKS endpoint.
-    /// </summary>
-    /// <param name="token">JWT token to validate.</param>
-    /// <param name="context">Lambda context for logging.</param>
-    /// <returns>True if the token is valid, otherwise false.</returns>
     private async Task<bool> ValidateJwtToken(string token, ILambdaContext context)
     {
         try
@@ -83,21 +69,20 @@ public class Function
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKeys = jsonWebKeySet.Keys,
                 ValidateIssuer = true,
-                ValidateAudience = false, // Skip direct audience validation
-                ValidIssuer = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_8jQ8KtU4v",
+                ValidateAudience = false,
+                ValidIssuer = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_yc6M649rp",
                 ValidateLifetime = true
             };
 
             context.Logger.LogLine("Validating token...");
             var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
 
-            // Tenta pegar client_id; se não achar, tenta aud
             var clientId = claimsPrincipal.FindFirst("client_id")?.Value
                         ?? claimsPrincipal.FindFirst("aud")?.Value;
 
             context.Logger.LogLine($"Extracted clientId (or aud): {clientId}");
 
-            if (clientId != "12fp667hsmiulr0e3ckc7jv5gd")
+            if (clientId != "6ghio8qtfebthof3sbch5d6c7c")
             {
                 context.Logger.LogLine($"Invalid client_id: {clientId}");
                 return false;
@@ -118,16 +103,18 @@ public class Function
         }
     }
 
-
-    /// <summary>
-    /// Generates an IAM policy document.
-    /// </summary>
-    /// <param name="principalId">The ID of the user.</param>
-    /// <param name="effect">Allow or Deny.</param>
-    /// <param name="resource">The ARN of the API Gateway method.</param>
-    /// <returns>A policy document.</returns>
-    private Dictionary<string, object> GeneratePolicy(string principalId, string effect, string resource)
+    private Dictionary<string, object> GeneratePolicy(string principalId, string effect, string methodArn)
     {
+        var arnParts = methodArn.Split(':'); // arn:aws:execute-api:{region}:{account}:{apiId}/{stage}/{method}/{resourcePath}
+        var region = arnParts[3];
+        var accountId = arnParts[4];
+        var apiGatewayArnParts = arnParts[5].Split('/');
+        var restApiId = apiGatewayArnParts[0];
+        var stage = apiGatewayArnParts[1];
+
+        // Libera tudo em vídeos com qualquer método: GET, POST, etc.
+        var wildcardArn = $"arn:aws:execute-api:{region}:{accountId}:{restApiId}/{stage}/*/videos/*";
+
         var policyDocument = new Dictionary<string, object>
         {
             { "Version", "2012-10-17" },
@@ -137,7 +124,7 @@ public class Function
                     {
                         { "Action", "execute-api:Invoke" },
                         { "Effect", effect },
-                        { "Resource", resource }
+                        { "Resource", wildcardArn }
                     }
                 }
             }
