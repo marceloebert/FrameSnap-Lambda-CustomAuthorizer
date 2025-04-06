@@ -13,7 +13,7 @@ namespace Lambda_Authenticator;
 
 public class Function
 {
-    private const string CognitoJwksUrl = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_Srf0ZBtbc/.well-known/jwks.json";
+    private const string CognitoJwksUrl = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_8jQ8KtU4v/.well-known/jwks.json";
     private static readonly HttpClient HttpClient = new HttpClient();
 
     /// <summary>
@@ -84,7 +84,7 @@ public class Function
                 IssuerSigningKeys = jsonWebKeySet.Keys,
                 ValidateIssuer = true,
                 ValidateAudience = false, // Skip direct audience validation
-                ValidIssuer = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_Srf0ZBtbc",
+                ValidIssuer = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_8jQ8KtU4v",
                 ValidateLifetime = true
             };
 
@@ -97,7 +97,7 @@ public class Function
 
             context.Logger.LogLine($"Extracted clientId (or aud): {clientId}");
 
-            if (clientId != "41vb4ljgmf4bhb8ogafjdjscst")
+            if (clientId != "12fp667hsmiulr0e3ckc7jv5gd")
             {
                 context.Logger.LogLine($"Invalid client_id: {clientId}");
                 return false;
