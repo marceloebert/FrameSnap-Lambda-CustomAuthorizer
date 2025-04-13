@@ -1,0 +1,48 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGION_DEFAULT: us-east-1
+  CLUSTER_NAME: EKS-FRAMESNAP
+
+jobs:
+  deploy:
+    name: Deploying API Gateway
+    runs-on: ubuntu-latest
+
+    environment: #Define a configuração de ambiente para este job.
+      name: AWS    
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0 
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.REGION_DEFAULT }}
+
+      # Inicializa API Gateway
+      - name: Terraform Init - API Gateway 
+        working-directory: api-gateway
+        run: terraform init -reconfigure
+
+      - name: Terraform Plan - API Gateway 
+        working-directory: api-gateway
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply - API Gateway
+        working-directory: api-gateway
+        run: terraform apply -auto-approve tfplan
