@@ -152,20 +152,24 @@ jobs:
       - name: Install Terraform        
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: '1.8.0'
-
+          terraform_version: '1.8.0'     
+        
       - name: Terraform Init
-        working-directory: ${{ github.workspace }}/../api-gateway
-        run: terraform init
+        run: |
+          cd $GITHUB_WORKSPACE/api-gateway
+          terraform init
 
       - name: Terraform Validate
-        working-directory: ${{ github.workspace }}/../api-gateway
-        run: terraform validate
+        run: |
+          cd $GITHUB_WORKSPACE/api-gateway
+          terraform validate
 
       - name: Terraform Plan
-        working-directory: ${{ github.workspace }}/../api-gateway
-        run: terraform plan -out=tfplan
+        run: |
+          cd $GITHUB_WORKSPACE/api-gateway
+          terraform plan -out=tfplan
 
       - name: Terraform Apply
-        working-directory: ${{ github.workspace }}/../api-gateway
-        run: terraform apply -auto-approve tfplan
+        run: |
+          cd $GITHUB_WORKSPACE/api-gateway
+          terraform apply -auto-approve tfplan
