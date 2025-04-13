@@ -120,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lambda-package
-          path: CustomAuthorizer.zip
+          path: Lambda-Authenticator/CustomAuthorizer.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -139,7 +139,7 @@ jobs:
       - name: Download Lambda package
         uses: actions/download-artifact@v4
         with:
-          name: lambda-package
+          name: lambda-package          
 
       - name: Deploy Lambda to AWS
         run: |
