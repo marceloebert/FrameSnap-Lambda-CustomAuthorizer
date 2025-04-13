@@ -5,12 +5,12 @@ variable "region" {
 
 variable "eks_service_endpoint" {
   description = "EKS public endpoint (sem /videos no final)"
-  default     = "http://a46278021035f45099372d1901e13158-107424252.us-east-1.elb.amazonaws.com/videos"
+  default     = "http://a65f7d678ccd0469ba97728784513106-1518254404.us-east-1.elb.amazonaws.com/videos"
 }
 
 variable "login_service_endpoint" {
   description = "EKS login service endpoint (rota /login)"
-  default     = "http://aaac2fcb5f97e483786be9c190d47c41-1267190571.us-east-1.elb.amazonaws.com/auth"
+  default     = "http://aac02e3ca3283499a9a6f48fa119442d-1681479322.us-east-1.elb.amazonaws.com/auth"
 }
 
 variable "lambda_function_name" {
@@ -20,5 +20,5 @@ variable "lambda_function_name" {
 
 variable "account_id" {
   description = "AWS account ID"
-  default     = "114692541707"
+  default     = "339713138979"
 }

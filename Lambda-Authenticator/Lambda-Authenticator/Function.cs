@@ -13,7 +13,7 @@ namespace Lambda_Authenticator;
 
 public class Function
 {
-    private const string CognitoJwksUrl = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_yc6M649rp/.well-known/jwks.json";
+    private const string CognitoJwksUrl = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ/.well-known/jwks.json";
     private static readonly HttpClient HttpClient = new HttpClient();
 
     public async Task<object> FunctionHandler(Dictionary<string, object> request, ILambdaContext context)
@@ -70,7 +70,7 @@ public class Function
                 IssuerSigningKeys = jsonWebKeySet.Keys,
                 ValidateIssuer = true,
                 ValidateAudience = false,
-                ValidIssuer = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_yc6M649rp",
+                ValidIssuer = "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
                 ValidateLifetime = true
             };
 
@@ -82,7 +82,7 @@ public class Function
 
             context.Logger.LogLine($"Extracted clientId (or aud): {clientId}");
 
-            if (clientId != "6ghio8qtfebthof3sbch5d6c7c")
+            if (clientId != "24aqngkfau1vjae4q4dqnu7bob")
             {
                 context.Logger.LogLine($"Invalid client_id: {clientId}");
                 return false;
@@ -112,7 +112,7 @@ public class Function
         var restApiId = apiGatewayArnParts[0];
         var stage = apiGatewayArnParts[1];
 
-        // Libera tudo em vídeos com qualquer método: GET, POST, etc.
+        // Libera tudo em vï¿½deos com qualquer mï¿½todo: GET, POST, etc.
         var wildcardArn = $"arn:aws:execute-api:{region}:{accountId}:{restApiId}/{stage}/*/videos/*";
 
         var policyDocument = new Dictionary<string, object>

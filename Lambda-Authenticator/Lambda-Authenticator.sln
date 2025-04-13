@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35521.163 d17.12
+VisualStudioVersion = 17.12.35521.163
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lambda-Authenticator", "Lambda-Authenticator\Lambda-Authenticator.csproj", "{A3F8E6E1-B388-4B10-84FB-68CB4C973D09}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lambda-Authenticator.Tests", "Lambda-Authenticator.Tests\Lambda-Authenticator.Tests.csproj", "{D23F367D-A68B-F0A5-14AB-C2AC9392ECFF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{A3F8E6E1-B388-4B10-84FB-68CB4C973D09}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A3F8E6E1-B388-4B10-84FB-68CB4C973D09}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A3F8E6E1-B388-4B10-84FB-68CB4C973D09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D23F367D-A68B-F0A5-14AB-C2AC9392ECFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D23F367D-A68B-F0A5-14AB-C2AC9392ECFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D23F367D-A68B-F0A5-14AB-C2AC9392ECFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D23F367D-A68B-F0A5-14AB-C2AC9392ECFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,21 +1,100 @@
-name: Build and Deploy Lambda and Terraform
+name: Build and Deploy Lambda
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  REGION_DEFAULT: us-east-1
+  SONAR_PROJECT_KEY: marceloebert_FrameSnap-Lambda-CustomAuthorizer
+  SONAR_ORGANIZATION: marceloebert
+  SONAR_HOST_URL: https://sonarcloud.io
 
 jobs:
-  build-and-deploy:
+  build-and-analyze:
     runs-on: ubuntu-latest
-    environment: # Define a configuração de ambiente
-      name: AWS
+    environment:
+      name: SONAR
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Install tools (SonarScanner and dotnet-coverage)
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet tool install --global dotnet-coverage
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Begin SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"${{ env.SONAR_PROJECT_KEY }}" \
+            /o:"${{ env.SONAR_ORGANIZATION }}" \
+            /d:sonar.host.url="${{ env.SONAR_HOST_URL }}" \
+            /d:sonar.token="${SONAR_TOKEN}" \
+            /d:sonar.cs.vscoveragexml.reportsPaths="coverage.xml" \
+            /d:sonar.exclusions="**/bin/**/*,**/obj/**/*" \
+            /d:sonar.branch.name="main"
+
+      - name: Restore dependencies
+        run: dotnet restore Lambda-FrameSnap-Processor.sln
+
+      - name: Build solution
+        run: dotnet build Lambda-FrameSnap-Processor.sln --configuration Release --no-restore
+
+      - name: Run Unit Tests with dotnet-coverage
+        run: |
+          dotnet-coverage collect "dotnet test Lambda-Authenticator.Tests/Lambda-Authenticator.Tests.csproj --no-build --configuration Release" \
+            -f xml -o coverage.xml
+
+      - name: Debug coverage output
+        run: cat coverage.xml || echo "Coverage file not found!"
+
+      - name: End SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  build-and-package:
+    runs-on: ubuntu-latest
+    needs: build-and-analyze
+    environment:
+      name: AWS
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Configuração do .NET Core
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v3
         with:
@@ -24,37 +103,54 @@ jobs:
       - name: Install Amazon Lambda Tools
         run: |
           dotnet tool install -g Amazon.Lambda.Tools
-          echo "Adding ~/.dotnet/tools to PATH"
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-      - name: Install dependencies
-        working-directory: Lambda-Authenticator/Lambda-Authenticator
+      - name: Restore project
+        working-directory: Lambda-Authenticator
         run: dotnet restore
 
-      # Configura credenciais AWS
+      - name: Build and package Lambda
+        working-directory: Lambda-Authenticator
+        run: |
+          dotnet lambda package \
+            --configuration Release \
+            --output-package ../CustomAuthorizer.zip
+
+      - name: Upload Lambda package
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: CustomAuthorizer.zip
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-package
+    environment:
+      name: AWS
+    steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
+          aws-region: ${{ env.REGION_DEFAULT }}
 
-      # Build e Deploy da Lambda
-      - name: Build and package Lambda
-        working-directory: Lambda-Authenticator/Lambda-Authenticator
-        run: dotnet lambda package -c Release -o Lambda-Authenticator.zip    
+      - name: Download Lambda package
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
 
       - name: Deploy Lambda to AWS
-        working-directory: Lambda-Authenticator/Lambda-Authenticator
         run: |
           aws lambda update-function-code \
             --region us-east-1 \
-            --function-name CustomAuthorizerLambda \
-            --zip-file fileb://Lambda-Authenticator.zip
+            --function-name CustomAuthorizer \
+            --zip-file fileb://CustomAuthorizer.zip
 
       # Terraform: Instalação e execução
       - name: Install Terraform
+        working-directory: api-gateway
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: '1.8.0'

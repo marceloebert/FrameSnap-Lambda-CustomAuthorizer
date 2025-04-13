@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Lambda.Authenticator.Tests</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>./TestResults/</CoverletOutput>
+    <Include>[Lambda-Authenticator]*</Include>
+    <IsTestProject>true</IsTestProject>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <AWSProjectType>Lambda</AWSProjectType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.5.0" />
+    <PackageReference Include="Amazon.Lambda.TestUtilities" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lambda-Authenticator\Lambda-Authenticator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Moq" />
+    <Using Include="Amazon.Lambda.Core" />
+    <Using Include="Amazon.Lambda.TestUtilities" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestResults\" />
+  </ItemGroup>
+
+</Project>
