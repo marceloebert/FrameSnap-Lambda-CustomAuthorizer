@@ -6,14 +6,15 @@ Este repositório contém os arquivos necessários para provisionar uma **funç�
 
 ## **Visão Geral**
 
-A infraestrutura possui duas rotas principais no API Gateway:
+A infraestrutura possui duas três principais no API Gateway:
 
-1. **`/prod`** - Protegida, exige autenticação via **Token JWT** gerado pelo **AWS Cognito**.
-   - Acesso restrito a **administradores**.
+1. **`/prod`** - Protegida, exige autenticação via **Token JWT** gerado pelo **AWS Cognito**.   
 
-2. **`/prod/public`** - Rota pública, permite chamadas sem autenticação.
+2. **`/prod/register`** - Rota pública, permite chamadas para se registrar sem autenticação.
 
-A **função Lambda** valida os Tokens JWT para a rota protegida `/prod` e garante o acesso apenas a usuários com a role **admin**.
+3. **`/prod/login`** - Rota pública, permite chamadas para logar sem autenticação.
+
+A **função Lambda** valida os Tokens JWT para a rota protegida `/prod` e garante o acesso apenas a usuários **autenticados**.
 
 ---
 
@@ -21,7 +22,7 @@ A **função Lambda** valida os Tokens JWT para a rota protegida `/prod` e garan
 
 ### **1. AWS Cognito**
 - Responsável pela geração e validação dos **Tokens JWT**.
-- Configurado para emitir tokens com roles específicas, como `admin`.
+- Configurado para emitir tokens para utilização das demais rotas
 
 ### **2. Lambda Function**
 - Implementa a lógica do **Custom Authorizer**.
@@ -31,7 +32,8 @@ A **função Lambda** valida os Tokens JWT para a rota protegida `/prod` e garan
 ### **3. API Gateway**
 - Provisiona as seguintes rotas:
   - **`/prod`** - Protegida, exige autenticação.
-  - **`/prod/public`** - Pública, sem autenticação.
+  - **`/prod/register`** - Pública, sem autenticação.
+  - **`/prod/login`** - Pública, sem autenticação.
 
 ---
 
@@ -39,7 +41,6 @@ A **função Lambda** valida os Tokens JWT para a rota protegida `/prod` e garan
 
 - **Terraform** instalado (versão 1.8.0 ou superior).
 - **AWS CLI** configurado com as credenciais apropriadas.
-- **Node.js** (para a função Lambda).
 
 ---
 
