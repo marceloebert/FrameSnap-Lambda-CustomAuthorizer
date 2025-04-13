@@ -149,8 +149,7 @@ jobs:
             --zip-file fileb://CustomAuthorizer.zip
 
       # Terraform: Instalação e execução
-      - name: Install Terraform
-        working-directory: api-gateway
+      - name: Install Terraform        
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: '1.8.0'
