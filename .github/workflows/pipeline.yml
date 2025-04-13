@@ -148,28 +148,29 @@ jobs:
             --function-name CustomAuthorizer \
             --zip-file fileb://CustomAuthorizer.zip
 
+      - name: Ensure root workspace
+        working-directory: ${{ github.workspace }}
+        run: echo "Back to repo root"
+
       # Terraform: Instalação e execução
       - name: Install Terraform        
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: '1.8.0'     
+          terraform_version: '1.8.0'      
         
       - name: Terraform Init
-        run: |
-          cd $GITHUB_WORKSPACE/api-gateway
-          terraform init
+        working-directory: ./api-gateway
+        run: terraform init
 
       - name: Terraform Validate
-        run: |
-          cd $GITHUB_WORKSPACE/api-gateway
-          terraform validate
+        working-directory: ./api-gateway
+        run: terraform validate
 
       - name: Terraform Plan
-        run: |
-          cd $GITHUB_WORKSPACE/api-gateway
-          terraform plan -out=tfplan
+        working-directory: ./api-gateway
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: |
-          cd $GITHUB_WORKSPACE/api-gateway
-          terraform apply -auto-approve tfplan
+        working-directory: ./api-gateway
+        run: terraform apply -auto-approve tfplan
+
