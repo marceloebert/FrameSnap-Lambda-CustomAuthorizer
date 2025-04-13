@@ -106,11 +106,11 @@ jobs:
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Restore project
-        working-directory: Lambda-Authenticator
+        working-directory: Lambda-Authenticator/Lambda-Authenticator
         run: dotnet restore
 
       - name: Build and package Lambda
-        working-directory: Lambda-Authenticator
+        working-directory: Lambda-Authenticator/Lambda-Authenticator
         run: |
           dotnet lambda package \
             --configuration Release \
