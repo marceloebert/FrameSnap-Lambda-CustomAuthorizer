@@ -352,6 +352,52 @@ namespace Lambda.Authenticator.Tests
 
             // Act & Assert
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
-        }        
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidClientId_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", "invalid-client-id"),
+                new Claim("token_use", "access"),
+                new Claim("scope", "aws.cognito.signin.user.admin"),
+                new Claim("auth_time", now.ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", now.AddHours(1).ToString("o")),
+                new Claim("iat", now.ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", "invalid-client-id"),
+                new Claim("username", "invalid-client-id")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: "invalid-client-id",
+                claims: claims,
+                expires: now.AddHours(1),
+                signingCredentials: _signingCredentials
+            );
+
+            var invalidToken = tokenHandler.WriteToken(token);
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {invalidToken}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
     }
 }
