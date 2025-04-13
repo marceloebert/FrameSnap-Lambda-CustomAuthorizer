@@ -399,5 +399,45 @@ namespace Lambda.Authenticator.Tests
             // Act & Assert
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
         }
+
+        [Fact]
+        public async Task FunctionHandler_WithMissingRequiredClaims_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", _validClientId),
+                new Claim("exp", now.AddHours(1).ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ")
+                // Faltando claims obrigatórias como token_use, scope, etc.
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: _validClientId,
+                claims: claims,
+                expires: now.AddHours(1),
+                signingCredentials: _signingCredentials
+            );
+
+            var invalidToken = tokenHandler.WriteToken(token);
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {invalidToken}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
     }
 }
