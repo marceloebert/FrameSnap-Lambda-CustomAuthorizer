@@ -439,5 +439,515 @@ namespace Lambda.Authenticator.Tests
             // Act & Assert
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
         }
+
+        [Fact]
+        public async Task FunctionHandler_WithJwksFetchError_ThrowsException()
+        {
+            // Arrange
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", "Bearer valid.token.here" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidClaims_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", "invalid-sub"),
+                new Claim("token_use", "invalid-use"),
+                new Claim("scope", "invalid-scope"),
+                new Claim("auth_time", now.ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", now.AddHours(1).ToString("o")),
+                new Claim("iat", now.ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", _validClientId),
+                new Claim("username", _validClientId)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: _validClientId,
+                claims: claims,
+                expires: now.AddHours(1),
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidClientIdInClaims_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", "invalid-client"),
+                new Claim("token_use", "access"),
+                new Claim("scope", "aws.cognito.signin.user.admin"),
+                new Claim("auth_time", now.ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", now.AddHours(1).ToString("o")),
+                new Claim("iat", now.ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", "invalid-client-id"),
+                new Claim("username", "invalid-client")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: "invalid-client-id",
+                claims: claims,
+                expires: now.AddHours(1),
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithMissingClaims_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", _validClientId),
+                new Claim("token_use", "access"),
+                new Claim("scope", "aws.cognito.signin.user.admin"),
+                new Claim("auth_time", now.ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", now.AddHours(1).ToString("o")),
+                new Claim("iat", now.ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString())
+                // Removendo client_id e username para testar o cenário de claims ausentes
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: _validClientId,
+                claims: claims,
+                expires: now.AddHours(1),
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithTokenValidationError_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", _validClientId),
+                new Claim("token_use", "access"),
+                new Claim("scope", "aws.cognito.signin.user.admin"),
+                new Claim("auth_time", now.ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", now.AddHours(-1).ToString("o")), // Token expirado
+                new Claim("iat", now.ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", _validClientId),
+                new Claim("username", _validClientId)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: _validClientId,
+                claims: claims,
+                expires: now.AddHours(-1), // Token expirado
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithUnexpectedError_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", _validClientId),
+                new Claim("token_use", "access"),
+                new Claim("scope", "aws.cognito.signin.user.admin"),
+                new Claim("auth_time", now.ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", "invalid-date"), // Data inválida para causar erro
+                new Claim("iat", now.ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", _validClientId),
+                new Claim("username", _validClientId)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: _validClientId,
+                claims: claims,
+                expires: now.AddHours(1),
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidTokenFormat_ThrowsException()
+        {
+            // Arrange
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", "Bearer invalid.token.format.with.extra.dots" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithMalformedTokenStructure_ThrowsException()
+        {
+            // Arrange
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", "Bearer " + Convert.ToBase64String(Encoding.UTF8.GetBytes("malformed_token_structure")) }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithExpiredTokenValidation_ThrowsException()
+        {
+            // Arrange
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", _validClientId),
+                new Claim("token_use", "access"),
+                new Claim("scope", "aws.cognito.signin.user.admin"),
+                new Claim("auth_time", now.AddDays(-1).ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", now.AddDays(-1).ToString("o")),
+                new Claim("iat", now.AddDays(-1).ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", _validClientId),
+                new Claim("username", _validClientId)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: _validClientId,
+                claims: claims,
+                expires: now.AddDays(-1),
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidJwksResponse_ThrowsException()
+        {
+            // Arrange
+            var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+            mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("invalid_jwks_response")
+                });
+
+            var mockHttpClient = new HttpClient(mockHttpMessageHandler.Object);
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", "Bearer " + Convert.ToBase64String(Encoding.UTF8.GetBytes("test_token")) }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidJwksResponseAndMalformedToken_ThrowsException()
+        {
+            // Arrange
+            var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+            mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"keys\":[{\"invalid\":\"jwks\"}]}")
+                });
+
+            var mockHttpClient = new HttpClient(mockHttpMessageHandler.Object);
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", "Bearer " + Convert.ToBase64String(Encoding.UTF8.GetBytes("malformed_token")) }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidJwksResponseAndExpiredToken_ThrowsException()
+        {
+            // Arrange
+            var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+            mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"keys\":[{\"invalid\":\"jwks\"}]}")
+                });
+
+            var mockHttpClient = new HttpClient(mockHttpMessageHandler.Object);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", _validClientId),
+                new Claim("token_use", "access"),
+                new Claim("scope", "aws.cognito.signin.user.admin"),
+                new Claim("auth_time", now.AddDays(-1).ToString("o")),
+                new Claim("iss", "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ"),
+                new Claim("exp", now.AddDays(-1).ToString("o")),
+                new Claim("iat", now.AddDays(-1).ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", _validClientId),
+                new Claim("username", _validClientId)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_WkWACahpJ",
+                audience: _validClientId,
+                claims: claims,
+                expires: now.AddDays(-1),
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
+
+        [Fact]
+        public async Task FunctionHandler_WithInvalidJwksResponseAndInvalidClaims_ThrowsException()
+        {
+            // Arrange
+            var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+            mockHttpMessageHandler
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"keys\":[{\"invalid\":\"jwks\"}]}")
+                });
+
+            var mockHttpClient = new HttpClient(mockHttpMessageHandler.Object);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var now = DateTime.UtcNow;
+
+            var claims = new[]
+            {
+                new Claim("sub", "invalid-sub"),
+                new Claim("token_use", "invalid-use"),
+                new Claim("scope", "invalid-scope"),
+                new Claim("auth_time", now.ToString("o")),
+                new Claim("iss", "invalid-issuer"),
+                new Claim("exp", now.AddHours(1).ToString("o")),
+                new Claim("iat", now.ToString("o")),
+                new Claim("jti", Guid.NewGuid().ToString()),
+                new Claim("client_id", "invalid-client-id"),
+                new Claim("username", "invalid-username")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: "invalid-issuer",
+                audience: "invalid-audience",
+                claims: claims,
+                expires: now.AddHours(1),
+                signingCredentials: _signingCredentials
+            );
+
+            var headers = new Dictionary<string, string>
+            {
+                { "Authorization", $"Bearer {tokenHandler.WriteToken(token)}" }
+            };
+
+            var request = new Dictionary<string, object>
+            {
+                { "headers", JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(headers)) },
+                { "methodArn", "arn:aws:execute-api:us-east-1:123456789012:api-id/stage/GET/videos/123" }
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _function.FunctionHandler(request, _context));
+        }
     }
 }
