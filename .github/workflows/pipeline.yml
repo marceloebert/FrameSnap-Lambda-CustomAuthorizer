@@ -62,10 +62,11 @@ jobs:
             /d:sonar.branch.name="main"
 
       - name: Restore dependencies
-        run: dotnet restore Lambda-FrameSnap-Processor.sln
+        run: dotnet restore Lambda-Authenticator.sln
 
       - name: Build solution
-        run: dotnet build Lambda-FrameSnap-Processor.sln --configuration Release --no-restore
+        run: dotnet build Lambda-Authenticator.sln --configuration Release --no-restore
+        run: dotnet build Lambda-Authenticator.sln --configuration Release --no-restore
 
       - name: Run Unit Tests with dotnet-coverage
         run: |
