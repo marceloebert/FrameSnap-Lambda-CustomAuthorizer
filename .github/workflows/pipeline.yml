@@ -66,7 +66,6 @@ jobs:
 
       - name: Build solution
         run: dotnet build Lambda-Authenticator.sln --configuration Release --no-restore
-        run: dotnet build Lambda-Authenticator.sln --configuration Release --no-restore
 
       - name: Run Unit Tests with dotnet-coverage
         run: |
