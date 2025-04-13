@@ -62,14 +62,14 @@ jobs:
             /d:sonar.branch.name="main"
 
       - name: Restore dependencies
-        run: dotnet restore Lambda-Authenticator.sln
+        run: dotnet restore Lambda-Authenticator/Lambda-Authenticator.sln
 
       - name: Build solution
-        run: dotnet build Lambda-Authenticator.sln --configuration Release --no-restore
+        run: dotnet build Lambda-Authenticator/Lambda-Authenticator.sln --configuration Release --no-restore
 
       - name: Run Unit Tests with dotnet-coverage
         run: |
-          dotnet-coverage collect "dotnet test Lambda-Authenticator.Tests/Lambda-Authenticator.Tests.csproj --no-build --configuration Release" \
+          dotnet-coverage collect "dotnet test Lambda-Lambda-Authenticator/Authenticator.Tests/Lambda-Authenticator.Tests.csproj --no-build --configuration Release" \
             -f xml -o coverage.xml
 
       - name: Debug coverage output
